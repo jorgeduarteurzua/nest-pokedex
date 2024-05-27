@@ -4,19 +4,31 @@ import { UpdatePokemonDto } from './dto/update-pokemon.dto';
 import { Model, isValidObjectId } from 'mongoose';
 import { Pokemon } from './entities/pokemon.entity';
 import { InjectModel } from '@nestjs/mongoose';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class PokemonService {
+
+  // Definimos la variable que usaremos para rescatar la variable de entorno defeultLimit
+  private defaultLimit:number; 
 
   // Agregamos Inyeccion de Dependencias, solo se deben realizar en el cosntructor()
   constructor(
 
     // Definimos la Inyeccion de Dependencia
     @InjectModel( Pokemon.name )
-    private readonly pokemonModel: Model<Pokemon>
+    private readonly pokemonModel: Model<Pokemon>,
+
+    // Agregamos configService, para utilizar EnvConfiguration
+    private readonly configService: ConfigService,
 
   ){
-    
+    // Generamos console.log para revisar las variables
+    // this.defaultLimit fue definida al inicio de la clase -->  private defaultLimit:number; 
+
+    this.defaultLimit = configService.get<number>('defaultLimit');
+
   }
 
 
@@ -58,8 +70,21 @@ export class PokemonService {
 
   }
 
-  findAll() {
-    return `This action returns all pokemon`;
+  findAll( paginationDto : PaginationDto) {
+
+    
+    // definimos los valores por defecto si es que no son enviados limit y offset
+    const { limit = this.defaultLimit , offset=0 } = paginationDto;
+
+    return this.pokemonModel.find()
+    .limit( limit )
+    .skip( offset )
+    // ordenamos por la columna no en forma ascendente
+    .sort({
+      no:1
+    })
+    // Si deseamos eliminar algun campo usamo - + campo --> '-__v'
+    .select('-__v');
   }
 
   // Modificamos el metodo findOne para que devuelva los Datos Requeridos
